@@ -2,9 +2,12 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
 	"net/http"
+	"os"
 	"restful-url-shortner/logic"
+	"restful-url-shortner/storage"
 	"time"
 )
 
@@ -21,14 +24,32 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
-	// 1. Register the route
-	http.HandleFunc("/shorten", logic.ShortenHandler)
+	constStr := os.Getenv("DB_STRING")
+	if constStr == "" {
+		constStr = "postgres://postgres:root@172.25.8.167:5432/postgres?sslmode=disable"
+	}
 
-	http.HandleFunc("/", logic.RedirectHandler)
+	repo, err := storage.NewRepository(constStr)
+	if err != nil {
+		panic(err)
+	}
+
+	logger := log.New(os.Stdout, "INFO: ", log.LstdFlags)
+
+	// Dependency Injection
+	h := &logic.Handler{
+		Repo:   repo,
+		Logger: logger,
+	}
+
+	// 1. Register the route
+	http.HandleFunc("/shorten", h.ShortenHandler)
+
+	http.HandleFunc("/", h.RedirectHandler)
 
 	// 2. Start Server on port 8080
 	fmt.Println("Starting server on port 8080...")
-	err := http.ListenAndServe(":8080", nil)
+	err = http.ListenAndServe(":8080", nil)
 	if err != nil {
 		fmt.Println("Error starting server:", err)
 	}

@@ -2,14 +2,13 @@ package logic
 
 import (
 	"net/http"
-	"restful-url-shortner/storage"
 )
 
-func RedirectHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) RedirectHandler(w http.ResponseWriter, r *http.Request) {
 	// 1. Get the short code from URL path
 	shortCode := r.URL.Path[1:] // slice '/' from URL
 
-	originalUrl, found := storage.GetUrlMapping(shortCode)
+	originalUrl, found := h.Repo.GetURL(shortCode)
 
 	if !found {
 		http.Error(w, "Short URl Not found", http.StatusNotFound)
